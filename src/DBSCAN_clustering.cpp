@@ -7,29 +7,13 @@ DBScan::DBScan(pcl::PointCloud<pcl::PointXYZI>::Ptr& filtered_xyz, float eps, in
   minNeighbor = minNeigh;
   minSignPoint = minPnt;
   nextGroupID = 1;
-
   visited.reserve(cloud->points.size());
   visited.insert(visited.end(), cloud->size(), 0);
-
-  // tree->setInputCloud(cloud);
 }
-
-// float get_distance_3d(int i1, int i2);
 
 std::vector<int> DBScan::find_neighbors_3d(int home)
 {
   std::vector<int> neighbors;
-  /* std::vector<int>pointIdxNKNSearch;
-  std::vector<float>pointNKNSquaredDistance;
-  if (tree->radiusSearch (cloud->points[home], 0.21, pointIdxNKNSearch, pointNKNSquaredDistance) >0)
-  {
-      for (size_t i=0; i<pointIdxNKNSearch.size (); ++i)
-      {
-          if (pointNKNSquaredDistance[i] < epsilon && i != home and visited[i] < 1){
-              neighbors.push_back(i);
-          }
-      }
-  }  */
   for (std::vector<int>::size_type i = 0; i != cloud->points.size(); i++)
   {
     if (get_distance_3d(i, home) < epsilon && i != home and visited[i] < 1)
@@ -101,34 +85,6 @@ int DBScan::get_numCluster()
       max = v;
   }
   return max;
-
-  /* std::map<int, int> counters;
-
-  for(int i = 0; i < visited.size(); i++){
-      if(visited[i] > 0)
-      counters[visited[i]]++;
-  }
-  std::vector<int> groups;
-
-  for(std::map<int, int>::iterator it = counters.begin(); it != counters.end(); it++){
-      groups.push_back(it->first);
-  }
-  for (int i = 1; i < groups.size(); i++)
-  {
-      int j = i - 1;
-      int key = groups[i];
-
-      while(j >= 0 && counters[groups[j]] < counters[key]){
-          groups[j+1] = groups[j];
-          j--;
-      }
-      groups[j+1] = key;
-  }
-
-  for (int i = 1; i < groups.size(); i++)
-  {
-      std::cout<<groups[i]<<":"<< counters[groups[i]] <<std::endl;
-  } */
 }
 
 void DBSCAN_getClusteredPoints(PointCloud<PointXYZI>::Ptr elevatedCloud, vector<cluster_seed2>& cluster_seed_,

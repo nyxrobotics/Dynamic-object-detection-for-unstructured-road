@@ -9,48 +9,39 @@ typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::PointCloud2
 
 struct MovingObjectDetectionCloud
 {
-  /*
-  A structure for holding incoming pointcloud and corresponding odometry. It has functions for
-  pointcloud pre-processing, ground plane removal and euclidian clustering. It aslo stores the
-moving object detection results after computation. A structure for accommodating an input point cloud and corresponding odometry.
-It has features such as point cloud preprocessing, ground plane removal, and Euclidean clustering. It also stores the calculated moving object detection results.
-  */
+  // A structure for holding incoming pointcloud and corresponding odometry. It has functions for
+  // pointcloud pre-processing, ground plane removal and euclidian clustering. It aslo stores the
+  // moving object detection results after computation.
+
   float gp_limit, gp_leaf, bin_gap;
   long min_cluster_size, max_cluster_size;
-  /* configuration variables configuration variables */
+  // configuration variables configuration variables
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr raw_cloud, cloud, cluster_collection;
-  /*raw_cloud: stores the pointcloud after trimming it in x,y,z axis
-  cloud: stores pointcloud after ground plane removal
-  cluster_collection: stores pointcloud with all the detected clusters*/
+  // raw_cloud: stores the pointcloud after trimming it in x,y,z axis
+  // cloud: stores pointcloud after ground plane removal
+  // cluster_collection: stores pointcloud with all the detected clusters
 
   sensor_msgs::PointCloud2 output_rgp;
-  /*  Add to  */
+  // Additional Functions
 
   std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> clusters;
-  /*vector to store the individual detected clusters
-vector */ to store a single detected cluster
+  // vector to store the individual detected clusters vector
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr centroid_collection;
-  /*stores the centroid of all the detected clusters. indexing is same as 'clusters'
-Store the centroids of all detected clusters. The index is the same as "clusters" */
+  // Store the centroids of all detected clusters. The index is the same as "clusters" */
 
   std::vector<pcl::PointIndices> cluster_indices;
-
-  /*vector to store the indices of all the detected clusters in 'cloud'
-A vector */ that stores the indices of all detected clusters in the "cloud"
+  // A vector that stores the indices of all detected clusters in the "cloud"
 
   pcl::IndicesConstPtr gp_indices;
-  /*indices of the points of ground plane in 'raw_cloud' which gets removed wile extracting 'cloud'
-Index of the ground plane point in "raw_cloud" that was removed by extracting "cloud" */
+  // indices of the points of ground plane in 'raw_cloud' which gets removed wile extracting 'cloud'
 
   std::vector<bool> detection_results;
-  /*results of moving object detection. indexing is same as 'clusters'
-Moving object detection results. The index is the same as "clusters" */
+  // Moving object detection results. The index is the same as "clusters"
 
   tf::Pose ps;
-  /*stores the 6D pose at which the pointloud was captured.
-Store the 6D pose when capturing pointloud */
+  // Store the 6D pose when capturing pointloud
 
   bool init;  // helps in synchronization
 
@@ -58,7 +49,6 @@ Store the 6D pose when capturing pointloud */
     : gp_limit(gp_lm), gp_leaf(gp_lf), bin_gap(bin_g), min_cluster_size(min_cl_s), max_cluster_size(max_cl_s)
   // Initialize class members (member initialization list), without this parameter cannot create a class object
   {
-    // constructor to initialize shared pointers and default variables
     // Constructor to initialize shared pointers and default variables
     raw_cloud.reset(new pcl::PointCloud<pcl::PointXYZI>);
     cloud.reset(new pcl::PointCloud<pcl::PointXYZI>);
@@ -73,11 +63,7 @@ Store the 6D pose when capturing pointloud */
 
 class MovingObjectDetectionMethods
 {
-  /*
-  A class to implement the methods and constraints for moving object detection between consecutive
-pointclouds. Classes for implementing methods and constraints for moving object detection between consecutive point clouds.
-  */
-
+  // A class to implement the methods and constraints for moving object detection between consecutive pointclouds.
   float volume_constraint, pde_lb, pde_ub;
 
 public:
@@ -87,32 +73,29 @@ public:
 
   bool volumeConstraint(pcl::PointCloud<pcl::PointXYZI>::Ptr fp, pcl::PointCloud<pcl::PointXYZI>::Ptr fc,
                         double threshold);
-  /*checks if two corresponding clusters have nearly equal volume, using an input threshold
-Use the input threshold to check if the volumes of two corresponding clusters are nearly equal */
+  // checks if two corresponding clusters have nearly equal volume, using an input threshold
 
   void calculateCorrespondenceCentroid(std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>& c1,
                                        std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>& c2,
                                        pcl::PointCloud<pcl::PointXYZ>::Ptr fp, pcl::PointCloud<pcl::PointXYZ>::Ptr fc,
                                        pcl::CorrespondencesPtr mp, double delta);
-  /*cluster centroid reciprocal correspondence based on euclidian distance*/
+  // cluster centroid reciprocal correspondence based on euclidian distance
 
   std::vector<double> getPointDistanceEstimateVector(std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>& c1,
                                                      std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>& c2,
                                                      pcl::CorrespondencesPtr mp);
-  /*implimentation of point correspondence distance estimation approach*/
+  // implimentation of point correspondence distance estimation approach
 
   std::vector<double> getClusterPointcloudChangeVector(std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>& c1,
                                                        std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>& c2,
                                                        pcl::CorrespondencesPtr mp, float resolution);
-  /*implementation of octree pointcloud change approach*/
+  // implementation of octree pointcloud change approach
 };
 
 // A structure that stores centroid attributes for moving clusters
 struct MovingObjectCentroid
 {
-  /*
-  A structure for storing the properties of a moving cluster centroid.
-A structure to store centroid attributes of moving clusters */
+  // A structure to store centroid attributes of moving clusters
   pcl::PointXYZ centroid;          // centroid of moving cluster
   int confidence, max_confidence;  // moving confidence score
 
@@ -142,11 +125,8 @@ A structure to store centroid attributes of moving clusters */
 
 class MovingObjectRemoval
 {
-  /*
-  A class for implementing the algorithms for detection and removal of moving objects. It includes
-  cluster tracking using confidence scores and handles the input data in a serial in and serial out manner.
-Classes for implementing moving object detection and removal algorithms. It includes cluster tracking using confidence scores, with serial input and serial output
-Process input data */
+  // A class for implementing the algorithms for detection and removal of moving objects. It includes
+  // cluster tracking using confidence scores and handles the input data in a serial in and serial out manner.
 
   float gp_limit, gp_leaf, bin_gap, volume_constraint, pde_lb, pde_ub, leave_off_distance, catch_up_distance, trim_x,
       trim_y, trim_z, ec_distance_threshold, pde_distance_threshold;
@@ -154,36 +134,33 @@ Process input data */
   int method_choice, opc_normalization_factor;
   std::string output_topic, debug_topic, marker_topic, input_pointcloud_topic, input_odometry_topic, output_fid,
       debug_fid;
-  /*configuration variables*/
+  // configuration variables
 
   std::vector<MovingObjectCentroid> mo_vec;
-  /*vector to store the detected and confirmed moving cluster properties
-Vector */ used to store detected and confirmed mobile cluster properties
+  // vector to store the detected and confirmed moving cluster properties
 
   std::deque<pcl::CorrespondencesPtr> corrs_vec;
-  /*double ended queue to store the consequtive frame cluster correspondece results as a buffer
-A double-ended queue for storing the corresponding results of the Consequitive frame cluster as a buffer */
+  // double ended queue to store the consequtive frame cluster correspondece results as a buffer
 
   std::deque<std::vector<bool>> res_vec;
-  /*double ended queue to store the frame moving object detection results as a buffer
-Deque for storing frame moving object detection results as a buffer */
+  // double ended queue to store the frame moving object detection results as a buffer
 
-  /*deque is an optimized DS optimized for deletion at both begenning and end. As 'corrs_vec' and
-'res_vec' are buffers they are better stored as deques deque is an optimized DS that can be optimized at the beginning and
-Delete when finished. Since "corrs_vec" and "res_vec" are buffers, it is better to store them as deque */
+  // deque is an optimized DS optimized for deletion at both begenning and end. As 'corrs_vec' and
+  // 'res_vec' are buffers they are better stored as deques deque is an optimized DS that can be optimized at the
+  // beginning and delete when finished. Since "corrs_vec" and "res_vec" are buffers, it is better to store them as
+  // deque */
 
   boost::shared_ptr<MovingObjectDetectionCloud> ca, cb;
-  /* shared pointers for holding incoming data shared pointers for holding incoming data */
+  // shared pointers for holding incoming data shared pointers for holding incoming data
 
   boost::shared_ptr<MovingObjectDetectionMethods> mth;
-  /* shared pointers for detection class object detection class object shared pointer */
+  // shared pointers for detection class object detection class object shared pointer
 
   int moving_confidence, static_confidence;
-  /* confidence score for detection clustering confidence score */
+  // confidence score for detection clustering confidence score
 
   pcl::KdTreeFLANN<pcl::PointXYZ> xyz_tree;
-  /*search tree for matching moving cluster centroids with latest cluster centroid collection
-Search tree for matching moved cluster centroids to latest set of cluster centroids */
+  // search tree for matching moving cluster centroids with latest cluster centroid collection
 
   ros::NodeHandle& nh;  // for visualization and internal sync
 #ifdef VISUALIZE
@@ -197,30 +174,30 @@ Search tree for matching moved cluster centroids to latest set of cluster centro
 #endif
 
   void setVariables(std::string config_file_path);
-  /*sets the algorithm variables from the config file*/
+  // sets the algorithm variables from rosparam
 
   void movingCloudObjectSubscriber(const sensor_msgs::PointCloud2ConstPtr& input, const nav_msgs::OdometryConstPtr& odm);
-  /*call back to get incoming data using internal sync*/
+  // call back to get incoming data using internal sync
 
   int recurseFindClusterChain(int col, int track);
-  /*recursive function to check for moving cluster chain consistency*/
+  // recursive function to check for moving cluster chain consistency
 
   void checkMovingClusterChain(pcl::CorrespondencesPtr mp, std::vector<bool>& res_ca, std::vector<bool>& res_cb);
-  /*function to confirm the consistency of a moving cluster and add the cluster to the 'mo_vec'*/
+  // function to confirm the consistency of a moving cluster and add the cluster to the 'mo_vec'
 
   void pushCentroid(pcl::PointXYZ pt);
-  /*function to add the centroid of a new moving cluster to 'mo_vec'*/
+  // function to add the centroid of a new moving cluster to 'mo_vec'
   int compare(int a, std::vector<int> b);
 
 public:
-  sensor_msgs::PointCloud2 output;  // stores the pointcloud after the moving objects removal
+  sensor_msgs::PointCloud2 output;
   // Store point cloud after deleting moving objects
 
-  MovingObjectRemoval(ros::NodeHandle _nh, std::string config_path, int n_bad, int n_good);
-  /*constructor: config_path is the path to the configuration file for the package*/
+  MovingObjectRemoval(ros::NodeHandle _nh, int n_bad, int n_good);
+  // constructor: config_path is the path to the configuration file for the package
 
   void pushRawCloudAndPose(pcl::PCLPointCloud2& cloud, geometry_msgs::Pose pose);
-  /*Input: function to push new data into the running alogorithm*/
+  // Input: function to push new data into the running alogorithm
 
   void showDistance(pcl::PointCloud<pcl::PointXYZ>::Ptr& c2);
 
@@ -228,5 +205,5 @@ public:
              pcl::CorrespondencesPtr fmp, std::vector<bool>& res_cb);
 
   bool filterCloud(pcl::PCLPointCloud2& cloud, std::string f_id);
-  /*Output: function to get the filtered cloud after moving object removal*/
+  // Output: function to get the filtered cloud after moving object removal
 };

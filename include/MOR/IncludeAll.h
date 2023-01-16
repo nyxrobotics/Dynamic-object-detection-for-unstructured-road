@@ -36,12 +36,9 @@
 using namespace std;
 
 #define VISUALIZE
-/*This defination flag helps to visualize the moving cluster and individual clusters detected
-by the algorithm This define flag helps to visualize moving clusters and individual clusters detected by the algorithm */
+// This define flag helps to visualize moving clusters and individual clusters detected by the algorithm
 
-// #define INTERNAL_SYNC
-/*This defination flag turns on the internal message synchronizer to subscribe to the topics given
-by the config file. If the VISUALIZE flag is defined, it publishes the filtered pointcloud after
-removing the moving objects along with the detection results, on topics defined in config file.
-This define flag turns on the internal message synchronizer to subscribe to the topic given by the configuration file. If the VISUALIZE flag is defined, it will
-Publish filtered point cloud on topics defined in configuration file after removing moving objects and detection results */
+//#define INTERNAL_SYNC
+// This define flag turns on the internal message synchronizer to subscribe to the topic given
+// by the configuration file. If the VISUALIZE flag is defined, it will Publish filtered pointcloud
+// on topics defined in configuration file after removing moving objects and detection results

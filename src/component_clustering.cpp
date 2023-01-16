@@ -29,16 +29,19 @@ void mapCartesianGrid(PointCloud<PointXYZI>::Ptr elevatedCloud, array<array<int,
     int yI = floor(numGrid * yC / roiM);
     gridNum[xI][yI] = gridNum[xI][yI] + 1;  // Count the points that fall on this grid
   }
-  // Select a single cell at x, y position as the center cell, and increment the clusterID counter by 1.
-  // Then all adjacent neighbor cells (i.e. x-1,y+1,x,y+1,x+1,y+1 x-1,y,x+1,y,x- 1, y -1, x, check y − 1, x + 1, y +
-  // 1) Occupancy status, and marked with the current cluster ID. Repeat this process for each x,y in the mxn grid until all non-empty clusters have been assigned IDs.
+  // A single cell at the x, y position is selected as the center cell and the clusterID counter is added by 1.
+  // Then all adjacent adjacent image elements
+  // (i.e. x-1, y + 1, x, y + 1, x + 1, y + 1 x - 1, y, x + 1, y, x - 1, y - 1, x, check y - 1, x + 1, y + 1)
+  // are occupied status and marked with the current clusterID. 
+  // Repeat this process for each x, y in the m × n grid until IDs are assigned to all non-empty clusters.
   for (int xI = 0; xI < numGrid; xI++)
   {
     for (int yI = 0; yI < numGrid; yI++)
     {
       if (gridNum[xI][yI] > 2)
       {
-        cartesianData[xI][yI] = -1;  // Grid allocation has 2 initial states, which are empty (0), occupied (-1) and allocated
+        cartesianData[xI][yI] =
+            -1;  // Grid allocation has 2 initial states, which are empty (0), occupied (-1) and allocated
         if (xI == 0)
         {
           if (yI == 0)
@@ -207,5 +210,6 @@ void componentClustering(PointCloud<pcl::PointXYZI>::Ptr elevatedCloud, std::vec
   // cluster_indices.reserve(numCluster);
   vector<cluster_seed> cluster_seed_(numCluster);
   getClusteredPoints(elevatedCloud, cartesianData, cluster_seed_, numCluster,
-                     cluster_indices);  // According to the cluster ID, store each point in the corresponding cluster cluster_indices
+                     cluster_indices);  // According to the cluster ID, store each point in the corresponding cluster
+                                        // cluster_indices
 }

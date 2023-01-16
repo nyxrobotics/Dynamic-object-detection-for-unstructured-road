@@ -56,7 +56,8 @@ void search(array<array<int, numGrid>, numGrid>& cartesianData, int clusterId, i
 
 void findComponent(array<array<int, numGrid>, numGrid>& cartesianData, int& clusterId);
 
-void componentClustering(PointCloud<pcl::PointXYZI>::Ptr elevatedCloud, std::vector<pcl::PointIndices>& cluster_indices);
+void componentClustering(PointCloud<pcl::PointXYZI>::Ptr elevatedCloud,
+                         std::vector<pcl::PointIndices>& cluster_indices);
 
 void getClusteredPoints(PointCloud<PointXYZI>::Ptr elevatedCloud, array<array<int, numGrid>, numGrid> cartesianData,
                         vector<cluster_seed>& cluster_seed_, int numCluster,

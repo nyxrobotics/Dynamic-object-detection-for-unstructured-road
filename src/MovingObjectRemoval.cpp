@@ -129,11 +129,11 @@ visualization_msgs::Marker mark_cluster2(pcl::PointCloud<pcl::PointXYZI>::Ptr cl
   if (colour == 1)
   {
     line_list.color.g = 1.0f;
-  }  //  green
+  }  // green
   else if (colour == 2)
   {
     line_list.color.r = 1.0f;
-  }  //  red
+  }  // red
   // else{line_list.color.b = 1.0f;}// blue
   line_list.color.a = 1.0;
 
@@ -174,7 +174,7 @@ visualization_msgs::Marker mark_cluster2(pcl::PointCloud<pcl::PointXYZI>::Ptr cl
 //// 2. Ground removal hardcoded
 void MovingObjectDetectionCloud::groundPlaneRemoval(float x, float y, float z)
 {
-  /*Hard coded ground plane removal*/
+  // Hard coded ground plane removal
 
   pcl::PassThrough<pcl::PointXYZI> pass;  // Straight-through filter Simple filter
   pass.setInputCloud(raw_cloud);
@@ -185,11 +185,12 @@ void MovingObjectDetectionCloud::groundPlaneRemoval(float x, float y, float z)
   pass.setFilterFieldName("y");
   pass.setFilterLimits(-y, y);
   pass.filter(*raw_cloud);
-  /*The pointcloud becomes more sparse as the distance of sampling from the lidar increases.
-  So it has been trimmed in X,Y and Z directions
-As the sampling distance from the lidar increases, the point cloud becomes sparser. So it gets trimmed in X, Y and Z directions */
+  // The pointcloud becomes more sparse as the distance of sampling from the lidar increases.
+  // So it has been trimmed in X,Y and Z directions As the sampling distance from the lidar increases,
+  // the point cloud becomes sparser. So it gets trimmed in X, Y and Z directions
 
-  pcl::CropBox<pcl::PointXYZI> cropBoxFilter(true);  // class CropBox to filter out the point cloud data in the cube given by the user
+  pcl::CropBox<pcl::PointXYZI> cropBoxFilter(true);  // class CropBox to filter out the point cloud data in the cube
+                                                     // given by the user
   cropBoxFilter.setInputCloud(raw_cloud);
   Eigen::Vector4f min_pt(-x, -y, gp_limit, 1.0f);  // Cube diagonal point 1, (-6, -6, -0.3)
   Eigen::Vector4f max_pt(x, y, z, 1.0f);           // cube diagonal point 2, (6, 6, 5)
@@ -198,8 +199,9 @@ As the sampling distance from the lidar increases, the point cloud becomes spars
   // cropBoxFilter.setNegative(true);// false is to only keep the points in the cube, the default is false
   cropBoxFilter.filter(*cloud);  //'cloud' stores the pointcloud after removing ground plane
   gp_indices = cropBoxFilter.getRemovedIndices();
-  /*ground plane is removed from 'raw_cloud' and their indices are stored in gp_indices
-The index of the ground plane is stored in gp_indices, and CropBox uses this index to filter the raw_cloud to the cloud without ground */
+  // ground plane is removed from 'raw_cloud' and their indices are stored in gp_indices
+  // The index of the ground plane is stored in gp_indices, and CropBox uses this index to filter the
+  // raw_cloud to the cloud without ground
   // ---------------------Additional----------------------- -----
   pcl::toROSMsg(*cloud, output_rgp);
   // output_rgp.header.frame_id = "gpr";
@@ -284,7 +286,8 @@ void MovingObjectDetectionCloud::groundPlaneRemoval(float x, float y)
 
   for (int i = 0; i < f_cloud->points.size(); i++)
   {
-    float key = (float)((int)(f_cloud->points[i].z * 10)) / bin_gap;  // bin gap for the binning step // Keep one decimal place
+    float key =
+        (float)((int)(f_cloud->points[i].z * 10)) / bin_gap;  // bin gap for the binning step // Keep one decimal place
     bins[key].push_back(i);
   }
   float tracked_key = bins.begin()->first;
@@ -330,61 +333,55 @@ void MovingObjectDetectionCloud::computeClusters(float distance_threshold, std::
 #ifdef VISUALIZE
   cluster_collection.reset(new pcl::PointCloud<pcl::PointXYZI>);
 #endif
-  /*initialize and clear the required variables*/
-
-  // static double start, time_taken,end;
-  // start = ros::Time::now().toSec();
-  /* // TEST1 Method for extracting clusters based on Euclidean distance
+  // TEST1 Method for extracting clusters based on Euclidean distance
+  /*
   pcl::EuclideanClusterExtraction<pcl::PointXYZI> ec;
   string s_method = "EuclideanClusterExtraction:     ";
   ec.setClusterTolerance(distance_threshold);
   ec.setMinClusterSize(min_cluster_size);
   ec.setMaxClusterSize(max_cluster_size);
   ec.setInputCloud(cloud);
-  ec.extract(cluster_indices);   */
-  /*euclidian clustering*/
+  ec.extract(cluster_indices);
+  */
 
   // TEST2 Clustering method based on connected components
   componentClustering(cloud, cluster_indices);
   string s_method = "2.5D component_clustering:     ";
 
-  /* // TEST3 original DBSCAN clustering method
-    DBSCAN_Clustering(cloud,cluster_indices);//
-    string s_method = "DBSCAN_clustering:     ";    */
+  // TEST3 original DBSCAN clustering method
+  /*
+  DBSCAN_Clustering(cloud,cluster_indices);
+  string s_method = "DBSCAN_clustering:     ";
+  */
 
-  /* // TEST4 KDTree accelerated DBSCAN clustering method
-    string s_method = "DBSCAN_KDTree_clustering:     ";
-    pcl::PointCloud<pcl::PointXYZ>::Ptr keypoints_ptr(new pcl::PointCloud<pcl::PointXYZ>);
-    for(int i = 0;i<cloud->points.size();i++){
-      pcl::PointXYZ o;
-      o.x = cloud->points[i].x;
-      o.y = cloud->points[i].y;
-      o.z = cloud->points[i].z;
-      if(o.x<-20||o.x>20||o.y<-20||o.y>20){continue;}
-      keypoints_ptr->points.push_back(o);
-    }
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
-    tree->setInputCloud(keypoints_ptr);
-    DBSCANKdtreeCluster<pcl::PointXYZ> ec;
-    ec.setCorePointMinPts(30);// Minimum number of clustering cores
-    ec.setClusterTolerance(0.3);// distance
-    ec.setMinClusterSize(40);// Minimum number of clustering points
-    ec.setMaxClusterSize(25000);// Maximum number of clustering points
-    ec.setSearchMethod(tree);// input tree
-    ec.setInputCloud(keypoints_ptr);// input point cloud
-    ec.extract(cluster_indices);// output storage index */
-
-  /* end = ros::Time::now().toSec();
-  time_taken = end - start;
-  ofstream time_txt("/home/wyw/clustering_time.txt", std::ios::app);
-  time_txt<<"Frame"<<+"\n";
-  time_txt<<s_method<<time_taken<<+"\n";
-  time_txt.close();  */
+  // TEST4 KDTree accelerated DBSCAN clustering method
+  /*
+  string s_method = "DBSCAN_KDTree_clustering:     ";
+  pcl::PointCloud<pcl::PointXYZ>::Ptr keypoints_ptr(new pcl::PointCloud<pcl::PointXYZ>);
+  for(int i = 0;i<cloud->points.size();i++){
+    pcl::PointXYZ o;
+    o.x = cloud->points[i].x;
+    o.y = cloud->points[i].y;
+    o.z = cloud->points[i].z;
+    if(o.x<-20||o.x>20||o.y<-20||o.y>20){continue;}
+    keypoints_ptr->points.push_back(o);
+  }
+  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
+  tree->setInputCloud(keypoints_ptr);
+  DBSCANKdtreeCluster<pcl::PointXYZ> ec;
+  ec.setCorePointMinPts(30);// Minimum number of clustering cores
+  ec.setClusterTolerance(0.3);// distance
+  ec.setMinClusterSize(40);// Minimum number of clustering points
+  ec.setMaxClusterSize(25000);// Maximum number of clustering points
+  ec.setSearchMethod(tree);// input tree
+  ec.setInputCloud(keypoints_ptr);// input point cloud
+  ec.extract(cluster_indices);// output storage index
+  */
 
   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin(); it != cluster_indices.end(); ++it)
   {
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZI>);
-    // temporary variable temporary variable
+    // temporary variable
     for (std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); ++pit)
     {
 #ifdef VISUALIZE
@@ -416,13 +413,11 @@ void MovingObjectDetectionCloud::computeClusters(float distance_threshold, std::
   for (int i = 0; i < clusters.size(); i++)
   {
     detection_results.push_back(false);
-    /*assign the moving detection results for all clusters as false initially
-Initially assign the motion detection result to false for all clusters */
+    // Initially assign the motion detection result to false for all clusters
   }
 
 #ifdef VISUALIZE
-  /*visualize the clustering results if VISUALIZE flag is defined
-Visualize the clustering results if the visualization flag is defined */
+  // Visualize the clustering results if the VISUALIZE flag is defined
   cluster_collection->width = cluster_collection->points.size();
   cluster_collection->height = 1;
   cluster_collection->is_dense = true;
@@ -466,15 +461,14 @@ void MovingObjectDetectionMethods::calculateCorrespondenceCentroid(
   corr_est.setInputSource(fp);
   corr_est.setInputTarget(fc);
   corr_est.determineReciprocalCorrespondences(*ufmp);
-  // Class CorrespondenceEstimation is the base class for determining the correspondence between target and query point sets (or features)
-  // Output the set of corresponding points between the two sets of point clouds
-  /*euclidian distance based reciprocal correspondence (one to one correspondence)
-Mutual correspondence based on Euclidean distance (one-to-one correspondence */
+  // Class CorrespondenceEstimation is the base class for determining the correspondence between target and query point
+  // sets (or features) Output the set of corresponding points between the two sets of point clouds
+  // Euclidian distance based reciprocal correspondence (one to one correspondence)
 
-  for (int j = 0; j < ufmp->size(); j++)  // Check whether the volumes of the corresponding clusters of the two frames before and after match one by one
+  for (int j = 0; j < ufmp->size(); j++)  // Check whether the volumes of the corresponding clusters of the two frames
+                                          // before and after match one by one
   {
-    /*filter the correspondences based on volume constraints and store in 'fmp'
-Filter correspondences according to volume constraints and store in "fmp" */
+    // Filter the correspondences based on volume constraints and store in 'fmp'
     if (!volumeConstraint(c1[(*ufmp)[j].index_query], c2[(*ufmp)[j].index_match], volume_constraint))
     {
       continue;
@@ -484,23 +478,23 @@ Filter correspondences according to volume constraints and store in "fmp" */
   }
 }
 
-// 6. Construct the octree representation of the source and target clouds. Returns the number of new points in each corresponding cluster point cloud relative to the previous frame
+// 6. Construct the octree representation of the source and target clouds. Returns the number of new points in each
+// corresponding cluster point cloud relative to the previous frame
 std::vector<double>
 MovingObjectDetectionMethods::getClusterPointcloudChangeVector(std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>& c1,
                                                                std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>& c2,
                                                                pcl::CorrespondencesPtr mp, float resolution = 0.3f)
 {
-  /*builds the octree representation of the source and destination clouds. finds the
-  number of new points appearing in the destination cloud with respect to the source
-  cloud. repeats this for each pair of corresponding pointcloud clusters
-Build an octree representation of the source and target clouds. Find the number of new points occurring in the target cloud relative to the source cloud.
-Repeat this for each pair of corresponding point cloud clusters */
+  // builds the octree representation of the source and destination clouds. finds the
+  // number of new points appearing in the destination cloud with respect to the source
+  // cloud. repeats this for each pair of corresponding pointcloud clusters
 
   std::vector<double> changed;
   srand((unsigned int)time(NULL));  // As a prerequisite for using rand to generate random numbers
   for (int j = 0; j < mp->size(); j++)
   {
-    pcl::octree::OctreePointCloudChangeDetector<pcl::PointXYZI> octree_cd(resolution);  // resolution The side length of the octree voxel
+    pcl::octree::OctreePointCloudChangeDetector<pcl::PointXYZI> octree_cd(resolution);  // resolution The side length of
+                                                                                        // the octree voxel
     octree_cd.setInputCloud(c1[(*mp)[j].index_query]);
     octree_cd.addPointsFromInputCloud();
     octree_cd.switchBuffers();  // swap octree cache
@@ -508,27 +502,25 @@ Repeat this for each pair of corresponding point cloud clusters */
     octree_cd.addPointsFromInputCloud();
 
     std::vector<int> newPointIdxVector;
-    /*stores the indices of the new points appearing in the destination cluster
-Stores the index of new points occurring in the target cluster */
+    // Stores the indices of the new points appearing in the destination cluster
 
     octree_cd.getPointIndicesFromNewVoxels(newPointIdxVector);  // Compare to get the index of the new point
     changed.push_back(newPointIdxVector.size());
   }
   return changed;
-  /*return the movement scores*/
+  // return the movement scores
 }
 
-// Optional for 6 Find the correspondence of points from the source to the target point cloud. Correspondence between filter distances within a specific distance range
+// Optional for 6 Find the correspondence of points from the source to the target point cloud. Correspondence between
+// filter distances within a specific distance range
 std::vector<double>
 MovingObjectDetectionMethods::getPointDistanceEstimateVector(std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>& c1,
                                                              std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>& c2,
                                                              pcl::CorrespondencesPtr mp)
 {
-  /*finds the correspondence of points from source to destination pointcloud.filters the
-  correspondences having distance within a specific distance range. repeats this for each
-  pair of corresponding pointcloud clusters
-Find the correspondence of points from source to target point cloud. Filters correspondences whose distance is within a certain distance range.
-Repeat this for each pair of corresponding point cloud clusters */
+  // Finds the correspondence of points from source to destination pointcloud.filters the
+  // correspondences having distance within a specific distance range. repeats this for each
+  // pair of corresponding pointcloud clusters
 
   std::vector<double> estimates;
   pcl::registration::CorrespondenceEstimation<pcl::PointXYZI, pcl::PointXYZI> corr_est;
@@ -539,7 +531,7 @@ Repeat this for each pair of corresponding point cloud clusters */
     corr_est.setInputSource(c1[(*mp)[j].index_query]);
     corr_est.setInputTarget(c2[(*mp)[j].index_match]);
     corr_est.determineCorrespondences(*corrs);
-    /*euclidian distance based correspondence (one to many correspondence)*/
+    // Euclidian distance based correspondence (one to many correspondence)
 
     double count = 0;
     for (int i = 0; i < corrs->size(); i++)
@@ -551,10 +543,10 @@ Repeat this for each pair of corresponding point cloud clusters */
     }
     estimates.push_back(count /
                         ((c1[(*mp)[j].index_query]->points.size() + c2[(*mp)[j].index_match]->points.size()) / 2));
-    /*normalize 'count' with respect to the size of corresponding clusters*/
+    // normalize 'count' with respect to the size of corresponding clusters
   }
   return estimates;
-  /*return the movement scores*/
+  // return the movement scores
 }
 
 // 0.initialization list
@@ -563,7 +555,7 @@ MovingObjectRemoval::MovingObjectRemoval(ros::NodeHandle nh_, std::string config
 {
   setVariables(config_path);
 
-/*ROS setup*/
+// ROS setup
 #ifdef VISUALIZE
   pub = nh.advertise<sensor_msgs::PointCloud2>(output_topic, 10);
   debug_pub = nh.advertise<sensor_msgs::PointCloud2>(debug_topic, 10);
@@ -581,8 +573,7 @@ MovingObjectRemoval::MovingObjectRemoval(ros::NodeHandle nh_, std::string config
   odom_sub.subscribe(nh, input_odometry_topic, 1);
   sync.reset(new message_filters::Synchronizer<MySyncPolicy>(MySyncPolicy(10), pc_sub, odom_sub));
   sync->registerCallback(&MovingObjectRemoval::movingCloudObjectSubscriber, this);
-/*internal message synchronization using ROS Approximate Time policy
-Internal message synchronization using ROS approximate time strategy */
+// Internal message synchronization using ROS Approximate Time policy
 #endif
 
   ca.reset(new MovingObjectDetectionCloud(gp_limit, gp_leaf, bin_gap, min_cluster_size,
@@ -590,15 +581,14 @@ Internal message synchronization using ROS approximate time strategy */
   cb.reset(new MovingObjectDetectionCloud(gp_limit, gp_leaf, bin_gap, min_cluster_size,
                                           max_cluster_size));  // current pointcloud frame (latest)
   mth.reset(new MovingObjectDetectionMethods(volume_constraint, pde_lb, pde_ub));
-  /* instantiate the shared pointers instantiate the shared pointer */
+  // Instantiate the shared pointers instantiate the shared pointer
 }
 
 // 0.2 Internal synchronization subscriber INTERNAL_SYNC flag control
 void MovingObjectRemoval::movingCloudObjectSubscriber(const sensor_msgs::PointCloud2ConstPtr& input,
                                                       const nav_msgs::OdometryConstPtr& odm)
 {
-  /*subscriber for internal sync. works if INTERNAL_SYNC flag is defined
-  内部同步订阅服务器。如果定义了INTERNAL\u SYNC标志，则工作*/
+  // Subscriber for internal sync. works if INTERNAL_SYNC flag is defined
 
   clock_t begin_time = clock();
   std::cout << "-----------------------------------------------------\n";
@@ -614,48 +604,43 @@ void MovingObjectRemoval::movingCloudObjectSubscriber(const sensor_msgs::PointCl
   }
 
   std::cout << 1000.0 * (clock() - begin_time) / CLOCKS_PER_SEC << std::endl;
-  /*print CPU time taken by the algorithm per iteration*/
+  // print CPU time taken by the algorithm per iteration
 
   std::cout << "-----------------------------------------------------\n";
 }
 
-// 8. Take the corresponding mapping buffer index and the result buffer index as initial parameters, and recurse to the end of all corresponding mappings available in the buffer.
+// 8. Take the corresponding mapping buffer index and the result buffer index as initial parameters, and recurse to the
+// end of all corresponding mappings available in the buffer.
 int MovingObjectRemoval::recurseFindClusterChain(int col, int track)
 {
-  /*takes the correspondence map buffer index and result buffer index as initial parameter
-  and recurses till the end of all the correspondence maps available in the buffer. cluster chain
-  information is obtained from the correspondence map buffer 'corrs_vec'. consistency in the
-  cluster chain is known using the result buffer 'res_vec'. returns -1 if consistency fails
-  or else returns the index of the moving cluster in the cluster collection 'clusters' in
-  the latest pointcloud frame 'cb'
-Takes the corresponding map buffer index and the result buffer index as initial arguments, and recurses to the end of all corresponding maps available in the buffer.
-The cluster chain information is obtained from the corresponding mapping buffer "corrs_vec". Consistency in the cluster chain is known using the result buffer "res_vec".
-Returns -1 if consistency fails, otherwise returns the index of the moving cluster in the cluster collection "clusters" in the latest point cloud frame "cb" */
+  // takes the correspondence map buffer index and result buffer index as initial parameter
+  // and recurses till the end of all the correspondence maps available in the buffer. cluster chain
+  // information is obtained from the correspondence map buffer 'corrs_vec'. consistency in the
+  // cluster chain is known using the result buffer 'res_vec'. returns -1 if consistency fails
+  // or else returns the index of the moving cluster in the cluster collection 'clusters' in
+  // the latest pointcloud frame 'cb'
 
   if (col == corrs_vec.size())
   {
-    /*break condition for the recursion. return the index of the moving cluster
-Recursive break condition. Return the index of the mobile cluster */
+    // break condition for the recursion. return the index of the moving cluster
     return track;
   }
 
   for (int j = 0; j < corrs_vec[col]->size(); j++)
   {
-    /*search all the unit correspondeces within the correspondence map in 'col' index of the buffer
-Searches for all unit correspondences in the correspondence graph in the buffer's 'col' index */
+    // search all the unit correspondeces within the correspondence map in 'col' index of the buffer
 
     if ((*corrs_vec[col])[j].index_query == track)
     {
-      /* correspondence map should have the key 'track' */
+      // correspondence map should have the key 'track'
 
       if (res_vec[col + 1][(*corrs_vec[col])[j].index_match] == true)
       {
-        /*the mapping index must have a true positive value in the result buffer
-The map index must have a true value */ in the result buffer
+        // the mapping index must have a true positive value in the result buffer
 
         return recurseFindClusterChain(col + 1, (*corrs_vec[col])[j].index_match);
-        /*if both key and mapped index have true positive value then move for the next correspondence
-map in the buffer If both the key and the map index have true values, move to the next corresponding map in the buffer */
+        // if both key and mapped index have true positive value then move for the next correspondence
+        // map in the buffer
       }
       else
       {
@@ -669,39 +654,36 @@ map in the buffer If both the key and the map index have true values, move to th
 // 9. Function to check and push moving centroids to confirmed moving cluster vectors
 void MovingObjectRemoval::pushCentroid(pcl::PointXYZ pt)
 {
-  /*function to check and push the moving centroid to the confirmed moving cluster vector*/
+  // function to check and push the moving centroid to the confirmed moving cluster vector
 
   for (int i = 0; i < mo_vec.size(); i++)
   {
-    /*check if the moving centroid has already been added to the 'mo_vec' previously
-Check if moving centroid has been added to "mo_vec" before */
+    // check if the moving centroid has already been added to the 'mo_vec' previously
     double dist = sqrt(pow(pt.x - mo_vec[i].centroid.x, 2) + pow(pt.y - mo_vec[i].centroid.y, 2) +
                        pow(pt.z - mo_vec[i].centroid.z, 2));
     if (dist < catch_up_distance)
     {
-      /*if found a centroid close to the new moving centroid then return, as no additional
-action is required Return if a centroid close to the new moving centroid is found, as no other action is required */
+      // if found a centroid close to the new moving centroid then return, as no additional
+      // action is required Return if a centroid close to the new moving centroid is found,
+      // as no other action is required
       return;
     }
   }
 
   MovingObjectCentroid moc(pt, static_confidence);  // static_confidence=3
-  /*assign static confidence to 'moc' that determines it's persistance in 'mo_vec'
-Assign static confidence to "moc" for its persistence in "mov_vec" */
+  // assign static confidence to 'moc' that determines it's persistance in 'mo_vec'
 
   mo_vec.push_back(moc);
-  /*if not present then add the new cluster centroid to the 'mo_vec'
-Add new cluster centroids to "movec" if not present */
+  // if not present then add the new cluster centroid to the 'mo_vec',
+  // add new cluster centroids to "movec" if not present
 }
 
 // 7. Get the new correspondence graph and result vector after the detection step, and update the buffer
 void MovingObjectRemoval::checkMovingClusterChain(pcl::CorrespondencesPtr mp, std::vector<bool>& res_ca,
                                                   std::vector<bool>& res_cb)
 {
-  /*gets new correspondence map and result vector after the detection step and updates the
-  buffers. it checks for new moving clusters and adds them to the 'mo_vec'
-Fetch the new correspondence graph and result vector after the detection step, and update the buffer.
-It checks for new mobile clusters and adds them to "mo_vec */
+  // gets new correspondence map and result vector after the detection step and updates the
+  // buffers. it checks for new moving clusters and adds them to the 'mo_vec'
 
   corrs_vec.push_back(mp);
   if (res_vec.size() == 0)
@@ -718,18 +700,15 @@ It checks for new mobile clusters and adds them to "mo_vec */
     {
       if (res_vec[0][i] == true)
       {
-        /*look to the historical data in the result buffer and check the clusters with true positive
-        value in the first result vector within the buffer
-Look at the historical data in the result buffer and check for clusters with true values in the first result vector in the buffer */
+        // look to the historical data in the result buffer and check the clusters with true positive
+        // value in the first result vector within the buffer
 
         int found_moving_index = recurseFindClusterChain(0, i);
-        /*run the recursive test to find a potential cluster chain form the buffers
-Run a recursive test to find potential cluster chains from the buffer */
+        // run the recursive test to find a potential cluster chain form the buffers
 
         if (found_moving_index != -1)
         {
-          /*if found push the confirmed moving centroid into 'mo_vec'
-If found, move the confirmed moving centroid into "mo_vec" */
+          // if found push the confirmed moving centroid into 'mo_vec'
           pushCentroid(cb->centroid_collection->points[found_moving_index]);
         }
       }
@@ -745,21 +724,13 @@ void MovingObjectRemoval::pushRawCloudAndPose(pcl::PCLPointCloud2& in_cloud, geo
 {
   /*recieves the synchronized incoming data and runs detection methods*/
 
-  ca = cb;  // update previous frame with the current frame transfer the calculation result cb of the previous frame to ca for saving
+  ca = cb;  // update previous frame with the current frame transfer the calculation result cb of the previous frame to
+            // ca for saving
   cb.reset(new MovingObjectDetectionCloud(gp_limit, gp_leaf, bin_gap, min_cluster_size, max_cluster_size));
   // release the original space default delete, cb clear
 
   pcl::fromPCLPointCloud2(in_cloud, *(cb->raw_cloud));  // load latest pointcloud
-  /*  ofstream time_txt("/home/wyw/pose_test03.txt", std::ios::app);
-   time_txt<<"Frame"<<counta<<+"\n";
-   time_txt<<pose<<+"\n";
-   time_txt.close();
-   counta++; */
 
-  /* ofstream time_txt("/home/wyw/pose_test03.txt", std::ios::app);
-  time_txt<<"Frame"<<counta<<+"\n";
-  time_txt<<pose<<+"\n";
-  time_txt.close(); */
   tf::poseMsgToTF(pose, cb->ps);  // load latest pose
 
   cb->groundPlaneRemoval(trim_x, trim_y, trim_z);  // ground plane removal (hard coded) ground removal hard coded
@@ -785,25 +756,22 @@ void MovingObjectRemoval::pushRawCloudAndPose(pcl::PCLPointCloud2& in_cloud, geo
   if (ca->init == true && cb->init == true)
   {
     tf::Transform t = (cb->ps).inverseTimes(ca->ps);
-    /*calculate transformation matrix between previous and current pose. 't' transforms a point
-From the previous pose to the current pose calculates the transformation matrix between the previous pose and the current pose. "t'
-Convert point from previous pose to current pose */
+    // calculate transformation matrix between previous and current pose. 't' transforms a point
+    // from the previous pose to the current pose
 
     pcl::PointCloud<pcl::PointXYZ> temp = *ca->centroid_collection;
     pcl_ros::transformPointCloud(temp, *ca->centroid_collection, t);
-    /*transform the previous centroid collection with respect to 't'
-Transform the previous set of centroids with respect to "t" */
+    // transform the previous centroid collection with respect to 't'
 
     for (int i = 0; i < ca->clusters.size(); i++)
     {
-      /*transform the clusters in the collection vector of the previous frame with respect to 't'
-Transform the clusters in the previous frame's set vector according to 't' */
-
+      // transform the clusters in the collection vector of the previous frame with respect to 't'
       pcl::PointCloud<pcl::PointXYZI> temp;
       temp = *ca->clusters[i];
       pcl_ros::transformPointCloud(temp, *ca->clusters[i], t);
     }
-// So far, the clustering point cloud and centroid coordinates of the previous frame point cloud stored in ca use pose information to eliminate the influence of the vehicle's own movement
+// So far, the clustering point cloud and centroid coordinates of the previous frame point cloud stored in ca use pose
+// information to eliminate the influence of the vehicle's own movement
 #ifdef VISUALIZE  // visualize the cluster collection if VISUALIZE flag is defined
     pcl::toPCLPointCloud2(*cb->cluster_collection, in_cloud);
     pcl_conversions::fromPCL(in_cloud, output);
@@ -812,15 +780,14 @@ Transform the clusters in the previous frame's set vector according to 't' */
 #endif
 
     pcl::CorrespondencesPtr mp(new pcl::Correspondences());
-    /*correspondence map between the cluster centroids of previous and current frame
-Map of the correspondence between the previous frame and the centroid of the current frame cluster */
+    // correspondence map between the cluster centroids of previous and current frame
 
     // cluster correspondence methods (Global) clustering corresponding method (global)
     mth->calculateCorrespondenceCentroid(ca->clusters, cb->clusters, ca->centroid_collection, cb->centroid_collection,
                                          mp, 0.1);
-    /*calculate euclidian correspondence and apply the voulme constraint
-Compute Euclidean correspondences and apply voulme constraints
-For the corresponding relationship of the clustered point cloud whose volume difference exceeds the threshold, delete */ in mp
+    // Compute Euclidean correspondences and apply voulme constraints
+    // For the corresponding relationship of the clustered point cloud whose volume difference
+    // exceeds the threshold, delete in mp
 
     // moving object detection methods (Local) moving object detection method (local)
     std::vector<double> param_vec;
@@ -831,16 +798,12 @@ For the corresponding relationship of the clustered point cloud whose volume dif
     else if (method_choice == 2)
     {
       param_vec = mth->getClusterPointcloudChangeVector(ca->clusters, cb->clusters, mp, 0.1);
-      // The vector param_vec stores the number of new points in the corresponding cluster point cloud relative to the previous frame
+      // The vector param_vec stores the number of new points in the corresponding cluster point cloud relative to the
+      // previous frame
     }
-    /*determine the movement scores for the corresponding clusters
-Determine the movement score for the corresponding cluster */
-    // int id=1;
-    // static int ct = 0;
+    // determine the movement scores for the corresponding clusters
     for (int j = 0; j < mp->size(); j++)
     {
-      // std::cout<<"{"<<(*mp)[j].index_query<<"->"<<(*mp)[j].index_match<<"} Fit Score: "<<(*mp)[j].distance<<"
-      // Moving_Score: "<<param_vec[j]<<std::endl;
       double threshold;
       if (method_choice == 1)
       {
@@ -855,60 +818,42 @@ Determine the movement score for the corresponding cluster */
 
       if (param_vec[j] > threshold)
       {
-        // ca->detection_results[(*mp)[j].index_query] = true;
         cb->detection_results[(*mp)[j].index_match] = true;
-        // marker_pub.publish(mark_cluster(cb->clusters[(*mp)[j].index_match],id++,debug_fid,"bounding_box",0.8,0.1,0.4));
-        // ct++;
       }
       else
       {
-        // ca->detection_results[(*mp)[j].index_query] = false;
         cb->detection_results[(*mp)[j].index_match] = false;
       }
-      /*assign the boolean results acording to thresholds. true for moving and false for static cluster
-Assign boolean results based on thresholds. true for mobile clusters, false for static clusters */
+      // assign the boolean results acording to thresholds. true for moving and false for static cluster
     }
     // std::cout<<ct<<std::endl;
     // display speed
     showV(ca->centroid_collection, cb->centroid_collection, mp, cb->detection_results);
 
     checkMovingClusterChain(mp, ca->detection_results, cb->detection_results);
-    /*submit the results to update the buffers
-Commit result to update buffer */
-    /* static double start, time_taken,end;
-    start = ros::Time::now().toSec();
-    end = ros::Time::now().toSec();
-    time_taken = end - start;
-    ofstream time_txt("/home/wyw/checkMovingClusterChain.txt", std::ios::app);
-    time_txt<<"Frame"<<+"\n";
-    time_txt<<time_taken<<+"\n";
-    time_txt.close();   */
+    // Submit the results to update the buffers
+    // commit result to update buffer
   }
 }
 
-// 10 Remove static clustering objects from mo_ec, remove moving dynamic objects from the latest point cloud, output filtered point cloud
+// 10 Remove static clustering objects from mo_ec, remove moving dynamic objects from the latest point cloud, output
+// filtered point cloud
 bool MovingObjectRemoval::filterCloud(pcl::PCLPointCloud2& out_cloud, std::string f_id)
 {
   /*removes the moving objects from the latest pointcloud and puts the filtered cloud in 'output'.
-  removes the static cluster centroids from 'mo_vec'
-Remove moving objects from the latest point cloud and place the filtered cloud in "output". Remove static cluster centroids from 'mo_vec'
-  */
+  removes the static cluster centroids from 'mo_vec'*/
 
   xyz_tree.setInputCloud(cb->centroid_collection);
-  /*use kdtree for searching the moving cluster centroid within 'centroid_collection' of the
-latest frame uses kdtree to search for moving cluster centroids in the "centroid_collection" of the latest frame */
+  /*use kdtree for searching the moving cluster centroid within 'centroid_collection' of the latest frame*/
 
   float rd = 0.8, gd = 0.1, bd = 0.4;
   int id = 1;  // colour variables for visualizing red bounding box
   float rd01 = 0, gd01 = 1.0, bd01 = 0;
   pcl::PointIndicesPtr moving_points(new pcl::PointIndices);
-  /*stores the indices of the points belonging to the moving clusters within 'cloud'
-Stores indices of points belonging to moving clusters in "cloud" */
+  /*stores the indices of the points belonging to the moving clusters within 'cloud'*/
 
-  // static int ct=0;
-  // ct+=mo_vec.size();
-  // std::cout<<ct<<std::endl;
   std::vector<int> movingclusterid;
+  int cluster_total = 0;
   for (int i = 0; i < mo_vec.size(); i++)
   {
     /* iterate through all the moving cluster centroids traversing all moving cluster centroids */
@@ -917,8 +862,7 @@ Stores indices of points belonging to moving clusters in "cloud" */
     std::vector<float> pointNKNSquaredDistance(1);
     if (xyz_tree.nearestKSearch(mo_vec[i].centroid, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
     {
-      /*search for the actual centroid in the centroid collection of the latest frame
-Search for the actual centroid in the set of centroids for the latest frame */
+      /*search for the actual centroid in the centroid collection of the latest frame*/
 
 #ifdef VISUALIZE  // visualize bounding box to show the moving cluster if VISUALIZE flag is defined
       marker_pub.publish(mark_cluster2(cb->clusters[pointIdxNKNSearch[0]], id++, debug_fid, 2));
@@ -929,21 +873,18 @@ Search for the actual centroid in the set of centroids for the latest frame */
 
       for (int j = 0; j < cb->cluster_indices[pointIdxNKNSearch[0]].indices.size(); j++)
       {
-        /*add the indices of the moving clusters in 'cloud' to 'moving_points'
-Add index of moving cluster in "cloud" to "moving_points" */
+        /*add the indices of the moving clusters in 'cloud' to 'moving_points'*/
         moving_points->indices.push_back(cb->cluster_indices[pointIdxNKNSearch[0]].indices[j]);
       }
 
       if (cb->detection_results[pointIdxNKNSearch[0]] == false || pointNKNSquaredDistance[0] > leave_off_distance)
       {
-        /*decrease the moving confidence if the cluster is found to be static in the latest results or
-        if the cluster dosen't appear in the current frame
-If the cluster is found to be static in the latest result, or if the cluster does not appear in the current frame, reduce the movement confidence */
+        // decrease the moving confidence if the cluster is found to be static in the latest results or
+        // if the cluster dosen't appear in the current frame
 
         if (mo_vec[i].decreaseConfidence())
         {
-          /*remove the moving centroid from 'mo_vec' if the confidence reduces to 0
-Remove moving centroids from 'mo_vec' if confidence drops to 0 */
+          // remove the moving centroid from 'mo_vec' if the confidence reduces to 0
           mo_vec.erase(mo_vec.begin() + i);
           i--;
         }
@@ -951,8 +892,7 @@ Remove moving centroids from 'mo_vec' if confidence drops to 0 */
       else
       {
         mo_vec[i].centroid = cb->centroid_collection->points[pointIdxNKNSearch[0]];
-        /*update the moving centroid with the latest centroid of the moving cluster
-Update moving centroids with latest centroids of moving clusters */
+        // update the moving centroid with the latest centroid of the moving cluster
 
         mo_vec[i].increaseConfidence();  // increase the moving confidence
       }
@@ -976,9 +916,12 @@ Update moving centroids with latest centroids of moving clusters */
   extract.setInputCloud(cb->cloud);
   extract.setIndices(moving_points);
   extract.setNegative(true);
+
   extract.filter(*f_cloud);
-  /*extract the moving clusters from 'cloud' and assign the filtered cloud to 'f_cloud'
-Extract moving clusters from 'cloud' and assign filtered cloud to 'f_cloud' */
+  // TODO: Debug error (cluster_total > cb->cloud->points.size())
+  // [pcl::ExtractIndices::applyFilter] The indices size exceeds the size of the input.
+
+  // extract the moving clusters from 'cloud' and assign the filtered cloud to 'f_cloud'
 
   for (int i = 0; i < cb->gp_indices->size(); i++)
   {
@@ -987,13 +930,12 @@ Extract moving clusters from 'cloud' and assign filtered cloud to 'f_cloud' */
   f_cloud->width = f_cloud->points.size();
   f_cloud->height = 1;
   f_cloud->is_dense = true;
-  /*merge the ground plane to the filtered cloud
-Merge ground plane to filter cloud */
+  // merge the ground plane to the filtered cloud
 
   pcl::toPCLPointCloud2(*f_cloud, out_cloud);
   pcl_conversions::fromPCL(out_cloud, output);
   output.header.frame_id = f_id;
-  /* assign the final filtered cloud to the 'output' */
+  // assign the final filtered cloud to the 'output'
 
   return true;  // confirm that a new filtered cloud is available Confirm that a new filtered cloud is available
 }
@@ -1108,7 +1050,7 @@ void MovingObjectRemoval::showV(pcl::PointCloud<pcl::PointXYZ>::Ptr& c1, pcl::Po
       Marker_j.scale.z = 0.3;  // size
       Marker_j.color.b = 0;
       Marker_j.color.g = 0;
-      Marker_j.color.r = 25;  //  color
+      Marker_j.color.r = 25;  // color
       Marker_j.color.a = 1;
 
       geometry_msgs::Point p1;
@@ -1135,12 +1077,14 @@ void MovingObjectRemoval::showV(pcl::PointCloud<pcl::PointXYZ>::Ptr& c1, pcl::Po
 }
 
 // Test: Display polygon
-/* void MovingObjectRemoval::showPolygon(){
+/*
+void MovingObjectRemoval::showPolygon(){
   geometry_msg::PolygonStamped myPolygon;
   geometry_msgs::Point32 point;
   myPolygon.header.frame_id = debug_fid;
 
-} */
+}
+*/
 
 // 0.1 set variable
 void MovingObjectRemoval::setVariables(std::string config_file_path)
