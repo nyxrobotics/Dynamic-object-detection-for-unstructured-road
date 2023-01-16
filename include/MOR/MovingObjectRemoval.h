@@ -130,7 +130,7 @@ class MovingObjectRemoval
 
   float gp_limit, gp_leaf, bin_gap, volume_constraint, pde_lb, pde_ub, leave_off_distance, catch_up_distance, trim_x,
       trim_y, trim_z, ec_distance_threshold, pde_distance_threshold;
-  long min_cluster_size, max_cluster_size;
+  int min_cluster_size, max_cluster_size;
   int method_choice, opc_normalization_factor;
   std::string output_topic, debug_topic, marker_topic, input_pointcloud_topic, input_odometry_topic, output_fid,
       debug_fid;
@@ -173,7 +173,7 @@ class MovingObjectRemoval
   boost::shared_ptr<message_filters::Synchronizer<MySyncPolicy>> sync;
 #endif
 
-  void setVariables(std::string config_file_path);
+  void readParams(ros::NodeHandle& main_nh);
   // sets the algorithm variables from rosparam
 
   void movingCloudObjectSubscriber(const sensor_msgs::PointCloud2ConstPtr& input, const nav_msgs::OdometryConstPtr& odm);
